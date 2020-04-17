@@ -1,0 +1,92 @@
+### Programming for data science nanodegree: Porject I     ##
+### Analysis of a relational database for dvd movies rental###
+/* Q1:  We want to estimate both the market demand and the available inventory of the DVD renting business ? */
+/* By knowing the demand of movies across genre is important for decision making, furthemore knowing the available inventory will give us insights about the business*/
+    WITH t1 AS (SELECT c.name AS Genre, COUNT(cu.customer_id) AS Total_rent_demand
+            FROM category c
+            JOIN film_category fc
+            USING(category_id)
+	          JOIN film f
+            USING(film_id)
+            JOIN inventory i
+            USING(film_id)
+            JOIN rental r
+            USING(inventory_id)
+            JOIN customer cu
+            USING(customer_id)
+            GROUP BY 1
+            ORDER BY 2 DESC),
+     t2 AS (SELECT c.name AS Genre, COUNT(*) AS Inventory_count 
+            FROM category c
+            JOIN film_category fc
+            USING(category_id)
+            JOIN film f
+            USING(film_id)
+            JOIN inventory i
+            USING(film_id)
+            JOIN rental r
+            USING(inventory_id)
+            JOIN payment p
+            USING(rental_id)
+            GROUP BY 1
+            ORDER BY 2 DESC)
+    SELECT t1.genre, t1.total_rent_demand, t2.inventory_count
+    FROM t1
+    JOIN t2
+    ON t1.genre = t2.genre;
+ /* Q2:  Who are our top 10 paying customers? */
+/* We want to know who are our best  customer and where they are coming fom, this insights will direct our marketing campaign*/
+     WITH t1 AS (SELECT *, first_name || ' ' || last_name AS full_name
+		    FROM customer)
+        SELECT full_name, email, address, phone, city, country, SUM(amount) AS total_paid
+        FROM t1
+        JOIN address
+        USING(address_id)
+        JOIN city
+        USING(city_id)
+        JOIN country
+        USING(country_id)
+        JOIN payment
+        USING(customer_id)
+     GROUP BY 1,2,3,4,5,6
+     ORDER BY 7 DESC
+     LIMIT 10;
+	 
+/* Q3: We want to investigate the movies that families like? */
+/* So we come to classify the movies based on the following categories:(Animation, Children, Classics, Comedy, Family, Music)*/
+
+ SELECT DISTINCT(sub.name), COUNT(sub.rental_id) OVER(PARTITION BY sub.name)
+FROM
+    (SELECT f.title, c.name,r.rental_id
+     FROM film_category fc
+     JOIN category c
+     USING(category_id)
+     JOIN film f
+     USING(film_id)
+     JOIN inventory i
+     USING(film_id)
+     JOIN rental r
+     USING (inventory_id)
+     WHERE c.name IN ('Animation', 'Children', 'Classics', 'Comedy', 'Family', 'Music') ) sub
+     ORDER BY 1,2
+
+/*Q4: We wantant to investigate the behavoir of customers by looking at how they deal with renting due date? */
+/* for this purpose, we have segmented into three differents group namely "Early returned","Timely Returned" and "Lately Returned" */
+    WITH t1 AS (Select *, DATE_PART('day', return_date - rental_date) AS date_difference
+            FROM rental),
+    t2 AS (SELECT rental_duration, date_difference,
+              CASE
+                 WHEN rental_duration > date_difference THEN 'Early returned'
+                 WHEN rental_duration = date_difference THEN 'Timely returned'
+                 ELSE  'Late returned'
+              END AS Return_Status
+          FROM film f
+          JOIN inventory i
+          USING(film_id)
+          JOIN t1
+          USING (inventory_id))
+    SELECT Return_status, COUNT(*) AS total_number 
+    FROM t2
+    GROUP BY 1
+ORDER BY 2 DESC;
+### Thanks for all###
