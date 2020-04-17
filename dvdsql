@@ -70,7 +70,7 @@ FROM
      WHERE c.name IN ('Animation', 'Children', 'Classics', 'Comedy', 'Family', 'Music') ) sub
      ORDER BY 1,2
 
-/*Q4: We wantant to investigate the behavoir of customers by looking at how they deal with renting due date? */
+/*Q4: We want to investigate the behavoir of customers by looking at how they deal with renting due date? */
 /* for this purpose, we have segmented into three differents group namely "Early returned","Timely Returned" and "Lately Returned" */
     WITH t1 AS (Select *, DATE_PART('day', return_date - rental_date) AS date_difference
             FROM rental),
